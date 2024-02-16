@@ -68,11 +68,9 @@ func NewEmailFromReader(to []string, r io.Reader) *Email {
 
 	ret.From = buildUser(m.Header.Get("From"))
 
-	if len(to) > 0 {
-		ret.To = buildUsers(to)
-	} else {
-		ret.To = buildUsers(m.Header.Values("To"))
-	}
+	ret.To = buildUsers(
+		append(m.Header.Values("To"), to...),
+	)
 
 	ret.Cc = buildUsers(m.Header.Values("Cc"))
 	ret.ReplyTo = buildUsers(m.Header.Values("ReplyTo"))

@@ -2,6 +2,7 @@ package http_server
 
 import (
 	"fmt"
+	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 	"io/fs"
 	"net/http"
@@ -32,8 +33,12 @@ func SetupStart() {
 	}
 	log.Infof("HttpServer Start On Port :%d", HttpPort)
 	setupServer = &http.Server{
-		Addr:         fmt.Sprintf(":%d", HttpPort),
-		Handler:      mux,
+		Addr: fmt.Sprintf(":%d", HttpPort),
+		Handler: cors.New(cors.Options{
+			AllowedOrigins: []string{"*"},
+			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders: []string{"account", "password"},
+		}).Handler(mux),
 		ReadTimeout:  time.Second * 60,
 		WriteTimeout: time.Second * 60,
 	}

@@ -34,6 +34,7 @@ type User struct {
 }
 
 type emailRequest struct {
+	To          string `json:"to"`
 	Keyword     string `json:"keyword"`
 	Tag         string `json:"tag"`
 	CurrentPage int    `json:"current_page"`
@@ -61,7 +62,7 @@ func EmailList(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 		retData.PageSize = 15
 	}
 
-	emailList, total := list.GetEmailList(ctx, retData.Tag, retData.Keyword, offset, retData.PageSize)
+	emailList, total := list.GetEmailList(ctx, retData.Tag, retData.Keyword, retData.To, offset, retData.PageSize)
 
 	for _, email := range emailList {
 		var sender User

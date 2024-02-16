@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"io/fs"
@@ -12,6 +13,7 @@ import (
 	"pmail/config"
 	"pmail/controllers"
 	"pmail/controllers/email"
+	"pmail/db"
 	"pmail/dto/response"
 	"pmail/i18n"
 	"pmail/models"
@@ -75,8 +77,12 @@ func HttpsStart() {
 	if config.Instance.HttpsEnabled != 2 {
 		log.Infof("Https Server Start On Port :%d", HttpsPort)
 		httpsServer = &http.Server{
-			Addr:         fmt.Sprintf(":%d", HttpsPort),
-			Handler:      session.Instance.LoadAndSave(mux),
+			Addr: fmt.Sprintf(":%d", HttpsPort),
+			Handler: session.Instance.LoadAndSave(cors.New(cors.Options{
+				AllowedOrigins: []string{"*"},
+				AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+				AllowedHeaders: []string{"account", "password"},
+			}).Handler(mux)),
 			ReadTimeout:  time.Second * 90,
 			WriteTimeout: time.Second * 90,
 			ErrorLog:     nullLog,
@@ -111,11 +117,22 @@ func contextIterceptor(h controllers.HandlerFunc) http.HandlerFunc {
 		ctx.Lang = lang
 
 		if config.IsInit {
-			user := cast.ToString(session.Instance.Get(ctx, "user"))
 			var userInfo *models.User
-			if user != "" {
-				_ = json.Unmarshal([]byte(user), &userInfo)
+			if r.Header.Get("account") != "" && r.Header.Get("password") != "" {
+
+				var user models.User
+				err := db.Instance.Get(&user, db.WithContext(ctx, "select * from user where account =? and password =?"), r.Header.Get("account"), r.Header.Get("password"))
+
+				if err == nil && user.ID > 0 {
+					userInfo = &user
+				}
+			} else {
+				user := cast.ToString(session.Instance.Get(ctx, "user"))
+				if user != "" {
+					_ = json.Unmarshal([]byte(user), &userInfo)
+				}
 			}
+
 			if userInfo != nil && userInfo.ID > 0 {
 				ctx.UserID = userInfo.ID
 				ctx.UserName = userInfo.Name

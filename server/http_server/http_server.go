@@ -2,6 +2,7 @@ package http_server
 
 import (
 	"fmt"
+	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 	"io/fs"
 	"net/http"
@@ -32,8 +33,12 @@ func HttpStart() {
 	if config.Instance.HttpsEnabled != 2 {
 		mux.HandleFunc("/", controllers.Interceptor)
 		httpServer = &http.Server{
-			Addr:         fmt.Sprintf(":%d", HttpPort),
-			Handler:      mux,
+			Addr: fmt.Sprintf(":%d", HttpPort),
+			Handler: cors.New(cors.Options{
+				AllowedOrigins: []string{"*"},
+				AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+				AllowedHeaders: []string{"account", "password"},
+			}).Handler(mux),
 			ReadTimeout:  time.Second * 90,
 			WriteTimeout: time.Second * 90,
 		}
@@ -66,8 +71,12 @@ func HttpStart() {
 		mux.HandleFunc("/attachments/download/", contextIterceptor(controllers.Download))
 		log.Infof("HttpServer Start On Port :%d", HttpPort)
 		httpServer = &http.Server{
-			Addr:         fmt.Sprintf(":%d", HttpPort),
-			Handler:      session.Instance.LoadAndSave(mux),
+			Addr: fmt.Sprintf(":%d", HttpPort),
+			Handler: session.Instance.LoadAndSave(cors.New(cors.Options{
+				AllowedOrigins: []string{"*"},
+				AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+				AllowedHeaders: []string{"account", "password"},
+			}).Handler(mux)),
 			ReadTimeout:  time.Second * 90,
 			WriteTimeout: time.Second * 90,
 		}

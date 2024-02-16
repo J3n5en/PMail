@@ -9,10 +9,10 @@ import (
 	"pmail/utils/context"
 )
 
-func GetEmailList(ctx *context.Context, tag string, keyword string, offset, limit int) (emailList []*models.Email, total int) {
+func GetEmailList(ctx *context.Context, tag string, keyword string, to string, offset, limit int) (emailList []*models.Email, total int) {
 
-	querySQL, queryParams := genSQL(ctx, false, tag, keyword, offset, limit)
-	counterSQL, counterParams := genSQL(ctx, true, tag, keyword, offset, limit)
+	querySQL, queryParams := genSQL(ctx, false, tag, keyword, to, offset, limit)
+	counterSQL, counterParams := genSQL(ctx, true, tag, keyword, to, offset, limit)
 
 	err := db.Instance.Select(&emailList, db.WithContext(ctx, querySQL), queryParams...)
 	if err != nil {
@@ -27,7 +27,7 @@ func GetEmailList(ctx *context.Context, tag string, keyword string, offset, limi
 	return
 }
 
-func genSQL(ctx *context.Context, counter bool, tag, keyword string, offset, limit int) (string, []any) {
+func genSQL(ctx *context.Context, counter bool, tag, keyword string, to string, offset, limit int) (string, []any) {
 
 	sql := "select * from email where 1=1 "
 	if counter {
@@ -59,6 +59,11 @@ func genSQL(ctx *context.Context, counter bool, tag, keyword string, offset, lim
 	if keyword != "" {
 		sql += " and (subject like ? or text like ? )"
 		sqlParams = append(sqlParams, "%"+keyword+"%", "%"+keyword+"%")
+	}
+
+	if to != "" {
+		sql += " and (`to` like ? ) and create_time >= NOW() - INTERVAL 1 HOUR"
+		sqlParams = append(sqlParams, "%"+to+"%")
 	}
 
 	sql += " order by id desc limit ? offset ?"
